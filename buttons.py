@@ -9,6 +9,7 @@ from variables import MEDIUM_FONT_SIZE
 
 if TYPE_CHECKING:
     from display import Display
+    from main_window import MainWindow
     from info import Info
 
 
@@ -26,18 +27,19 @@ class Button(QPushButton):
 
 class ButtonsGrid(QGridLayout):
     def __init__(
-            self, display: 'Display', info: 'Info', *args, **kwargs
+            self, display: 'Display', info: 'Info', window: 'MainWindow', *args, **kwargs
     ) -> None:
         super().__init__(*args, **kwargs)
 
         self._gridMask = [
-            ['C', '◀', '^', '/'],
+            ['C', 'D', '^', '/'],
             ['7', '8', '9', '*'],
             ['4', '5', '6', '-'],
             ['1', '2', '3', '+'],
             ['',  '0', '.', '='],
         ]
         self.display = display
+        self.window = window
         self.info = info
         self._equation = ''
         self._equationInitialValue = ''
@@ -56,8 +58,16 @@ class ButtonsGrid(QGridLayout):
     def equation(self, value):
         self._equation = value
         self.info.setText(value)
+    
+    def vouApagarVocê(self):
+        print('Signal recebido por "vouApagarVocê" em', type(self).__name__)
+
 
     def _makeGrid(self):
+        self.display.eqPressed.connect(self.vouApagarVocê)
+        self.display.delPressed.connect(self.display.backspace)
+        self.display.clearPressed.connect(self.vouApagarVocê)
+
         for rowNumber, rowData in enumerate(self._gridMask):
             for colNumber, buttonText in enumerate(rowData):
                 button = Button(buttonText)
@@ -78,11 +88,14 @@ class ButtonsGrid(QGridLayout):
 
         if text == 'C':
             self._connectButtonClicked(button, self._clear)
+                
+        if text == 'D':
+            self._connectButtonClicked(button, self.display.backspace)
         
         if text in '+-/*^':
             self._connectButtonClicked(button, self._makeSlot(self._operatorClicked, button))
         
-        if text in '=':
+        if text == '=':
             self._connectButtonClicked(button, self._eq)
 
     def _makeSlot(self, func, *args, **kwargs):
@@ -114,7 +127,7 @@ class ButtonsGrid(QGridLayout):
 
         # Se a pessoa clicou no operador sem configurar qualquer número
         if not isValidNumber(displayText) and self._left is None:
-            print('Não tem nada para colocar no valor da esquerda')
+            self._showError('Você não digitou nada')
             return
 
         # Se houver algo no número da esquerda, não fazemos nada. Aguardaremos o número da direita.
@@ -128,7 +141,7 @@ class ButtonsGrid(QGridLayout):
         displayText = self.display.text()
 
         if not isValidNumber(displayText):
-            print('Nada a direita')
+            self._showError('Conta incompleta')
             return
 
         self._right = float(displayText)
@@ -141,9 +154,9 @@ class ButtonsGrid(QGridLayout):
             else:
                 result = eval(self.equation)
         except ZeroDivisionError:
-            print('Divisão por zero')
+            self._showError('Divisão por zero')
         except OverflowError:
-            print('Número muito grande')
+            self._showError('Essa conta não pode ser realizada')
         
         self.display.clear()
         self.info.setText(f'{self._equation} = {result}')
@@ -152,3 +165,18 @@ class ButtonsGrid(QGridLayout):
 
         if result == 'error':
             self._left = None
+    
+    def _makeDialog(self, text):
+        msgBox = self.window.makeMsgBox()
+        msgBox.setText(text)
+        return msgBox
+
+    def _showError(self, text):
+        msgBox = self._makeDialog(text)
+        msgBox.setIcon(msgBox.Icon.Critical)
+        msgBox.exec()
+
+    def _showInfo(self, text):
+        msgBox = self._makeDialog(text)
+        msgBox.setIcon(msgBox.Icon.Information)
+        msgBox.exec()
