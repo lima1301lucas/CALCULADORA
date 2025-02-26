@@ -16,3 +16,11 @@ def isValidNumber(string: str):
     except ValueError:
         valid = False
     return valid
+
+def convertToNumber(string: str):
+    number = float(string)
+    
+    if number.is_integer():
+        number = int(number)
+    
+    return number
