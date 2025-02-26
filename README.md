@@ -23,7 +23,12 @@ Este projeto é uma **calculadora simples** desenvolvida em **Python** utilizand
   env\Scripts\activate
   ```
 
-### 3️⃣ Executar a aplicação
+### 3️⃣ Instalar as dependências
+```sh
+pip install -r requirements.txt
+```
+
+### 4️⃣ Executar a aplicação
 ```sh
 python main.py
 ```
